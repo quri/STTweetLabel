@@ -7,8 +7,13 @@
 //
 
 #import <XCTest/XCTest.h>
-
 #import "STTweetLabel.h"
+
+@interface STTweetLabel ()
+
+- (NSArray *)hotWordsList;
+
+@end
 
 @interface STTweetLabel_Tests : XCTestCase
 
@@ -18,32 +23,22 @@
 
 @implementation STTweetLabel_Tests
 
-- (void)setUp
-{
+- (void)setUp {
+
     [super setUp];
     
     _tweetLabel = [[STTweetLabel alloc] initWithFrame:CGRectMake(0.0, 0.0, 320.0, 200.0)];
 }
 
-- (void)tearDown
-{
+- (void)tearDown {
+
     [super tearDown];
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundeclared-selector"
+- (void)initiateTestFromSample:(NSString *)text results:(NSArray *)results {
 
-- (NSArray *)hotWordsListForSampleText:(NSString *)text
-{
-    return [_tweetLabel performSelector:@selector(hotWordsList)];
-}
-
-#pragma clang diagnostic pop
-
-- (void)initiateTestFromSample:(NSString *)text results:(NSArray *)results
-{
     [_tweetLabel setText:text];
-    NSArray *hotWords = [self hotWordsListForSampleText:text];
+    NSArray *hotWords = self.tweetLabel.hotWordsList;
     
     XCTAssertEqual(results.count, hotWords.count, @"Number of hot words should be %ld but %ld was returned instead.", results.count, hotWords.count);
     
@@ -67,8 +62,7 @@
     }
 }
 
-#pragma mark -
-#pragma mark Text attributes
+#pragma mark - Text attributes
 
 - (void)test_setAndGetAttributesForText_setAttributes_attributes
 {
@@ -120,8 +114,7 @@
     XCTAssertNoThrowSpecificNamed([_tweetLabel setAttributes:attributes hotWord:0], NSException, NSInvalidArgumentException, @"Attributes dictionary contains NSFontAttributeName and NSForegroundColorAttributeName and shouldn't raise an exception.");
 }
 
-#pragma mark -
-#pragma mark Text alignment
+#pragma mark - Text alignment
 
 - (void)test_setAndGetTextAlignment_setTextAlignment_textAlignment
 {
@@ -130,8 +123,7 @@
     XCTAssertEqual(NSTextAlignmentRight, _tweetLabel.textAlignment, @"Text alignment should be %d but %d was resturned instead.", (int)NSTextAlignmentRight, (int)_tweetLabel.textAlignment);
 }
 
-#pragma mark -
-#pragma mark Valid protocols
+#pragma mark - Valid protocols
 
 - (void)test_setAndGetValidProtocols_setProtocols_protocols
 {
@@ -143,8 +135,7 @@
     XCTAssertEqualObjects(protocols, _tweetLabel.validProtocols, @"Valid protocols should be %@ but %@ was returned instead.", protocols, _tweetLabel.validProtocols);
 }
 
-#pragma mark -
-#pragma mark Writing direction
+#pragma mark - Writing direction
 
 - (void)test_setAndGetWritingDirection_setLeftToRight_leftToRight
 {
@@ -160,8 +151,7 @@
     XCTAssertEqual(NO, _tweetLabel.leftToRight, @"Writing direction (left to right) should be %d but %d was returned instead.", NO, _tweetLabel.leftToRight);
 }
 
-#pragma mark -
-#pragma mark Text selection
+#pragma mark - Text selection
 
 - (void)test_setAndGetTextSelectable_setTextSelectable_textSelectable
 {
@@ -186,8 +176,7 @@
     XCTAssertEqualObjects(redColor, _tweetLabel.selectionColor, @"Selection color should be %@ but %@ was returned instead.", redColor, _tweetLabel.selectionColor);
 }
 
-#pragma mark -
-#pragma mark Data 
+#pragma mark - Data
 
 - (void)test_setTextAndGetHotWords_setTextWithSampleDemoText_hotWords
 {

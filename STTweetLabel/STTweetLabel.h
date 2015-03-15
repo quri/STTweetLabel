@@ -7,25 +7,27 @@
 //
 
 typedef NS_ENUM(NSInteger, STTweetHotWord) {
-    STTweetHandle = 0,
-    STTweetHashtag,
-    STTweetLink
+    STTweetHandle  = 1,
+    STTweetHashtag = 2,
+    STTweetLink    = 3
 };
 
-@interface STTweetLabel : UILabel
+@interface STTweetLabel : UIView
 
 @property (nonatomic, strong) NSArray *validProtocols;
-@property (nonatomic, assign) BOOL leftToRight;
-@property (nonatomic, assign) BOOL textSelectable;
+@property (nonatomic, assign) BOOL    leftToRight;
+@property (nonatomic, assign) BOOL    textSelectable;
 @property (nonatomic, strong) UIColor *selectionColor;
 @property (nonatomic, copy) void (^detectionBlock)(STTweetHotWord hotWord, NSString *string, NSString *protocol, NSRange range);
 
++ (instancetype)tweetLabel;
+
+- (void)setText:(NSString *)text;
+- (void)setTextAlignment:(NSTextAlignment)textAlignment;
 - (void)setAttributes:(NSDictionary *)attributes;
 - (void)setAttributes:(NSDictionary *)attributes hotWord:(STTweetHotWord)hotWord;
 
 - (NSDictionary *)attributes;
 - (NSDictionary *)attributesForHotWord:(STTweetHotWord)hotWord;
-
-- (CGSize)suggestedFrameSizeToFitEntireStringConstraintedToWidth:(CGFloat)width;
 
 @end

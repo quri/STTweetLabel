@@ -9,26 +9,31 @@
 #import "STTweetLabel.h"
 #import "STTweetTextStorage.h"
 
+#define ASSERT_EXPECTED_CLASS(Object, Class) do { \
+NSAssert((Object) == nil || [(Object) isKindOfClass:[Class class]], \
+@"Unexpected type: object %@ should be type %@", (Object), [Class class]); \
+} while(false)
+
 #define STURLRegex @"(?i)\\b((?:[a-z][\\w-]+:(?:/{1,3}|[a-z0-9%])|www\\d{0,3}[.]|[a-z0-9.\\-]+[.][a-z]{2,4}/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s`!()\\[\\]{};:'\".,<>?«»“”‘’]))"
 
 @interface STTweetLabel () <UITextViewDelegate>
 
-@property (strong) STTweetTextStorage *textStorage;
-@property (strong) NSLayoutManager *layoutManager;
-@property (strong) NSTextContainer *textContainer;
+@property (nonatomic, weak) IBOutlet UITextView *textView;
+@property (nonatomic, weak) IBOutlet NSLayoutConstraint *heightConstraint;
+
+@property (nonatomic, strong) STTweetTextStorage *textStorage;
+@property (nonatomic, strong) NSLayoutManager *layoutManager;
+@property (nonatomic, strong) NSTextContainer *textContainer;
 
 @property (nonatomic, strong) NSString *cleanText;
 
-@property (strong) NSMutableArray *rangesOfHotWords;
+@property (nonatomic, strong) NSMutableArray *rangesOfHotWords;
 
 @property (nonatomic, strong) NSDictionary *attributesText;
 @property (nonatomic, strong) NSDictionary *attributesHandle;
 @property (nonatomic, strong) NSDictionary *attributesHashtag;
 @property (nonatomic, strong) NSDictionary *attributesLink;
 
-@property (strong) UITextView *textView;
-
-- (void)setupLabel;
 - (void)determineHotWords;
 - (void)determineLinks;
 - (void)updateText;
@@ -42,34 +47,28 @@
     CGPoint _firstTouchLocation;
 }
 
-#pragma mark - Lifecycle
++ (instancetype)tweetLabel {
 
-- (id)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    
-    if (self) {
-        [self setupLabel];
-    }
-    
-    return self;
-}
-
-- (void)awakeFromNib {
-    [super awakeFromNib];
-    [self setupLabel];
+    STTweetLabel *tweetLabel = [[[NSBundle mainBundle] loadNibNamed:@"STTweetLabel" owner:nil options:nil] lastObject];
+    ASSERT_EXPECTED_CLASS(tweetLabel, STTweetLabel);
+    [tweetLabel setup];
+    return tweetLabel;
 }
 
 #pragma mark - Responder
 
 - (BOOL)canBecomeFirstResponder {
+
     return YES;
 }
 
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender {
+
     return (action == @selector(copy:));
 }
 
 - (void)copy:(id)sender {
+
     [[UIPasteboard generalPasteboard] setString:[_cleanText substringWithRange:_selectableRange]];
     
     @try {
@@ -80,40 +79,43 @@
 
 #pragma mark - Setup
 
-- (void)setupLabel {
-        // Set the basic properties
-        [self setBackgroundColor:[UIColor clearColor]];
-        [self setClipsToBounds:NO];
-        [self setUserInteractionEnabled:YES];
-        [self setNumberOfLines:0];
-    
+- (void)setup {
+
+    // Set the basic properties
+    [self setBackgroundColor:[UIColor clearColor]];
+    [self setClipsToBounds:NO];
+    [self setUserInteractionEnabled:YES];
+
     _leftToRight = YES;
     _textSelectable = YES;
     _selectionColor = [UIColor colorWithWhite:0.9 alpha:1.0];
     
-    _attributesText = @{NSForegroundColorAttributeName: self.textColor, NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
+    _attributesText = @{NSForegroundColorAttributeName: [UIColor grayColor], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     _attributesHandle = @{NSForegroundColorAttributeName: [UIColor redColor], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     _attributesHashtag = @{NSForegroundColorAttributeName: [[UIColor alloc] initWithWhite:170.0/255.0 alpha:1.0], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     _attributesLink = @{NSForegroundColorAttributeName: [[UIColor alloc] initWithRed:129.0/255.0 green:171.0/255.0 blue:193.0/255.0 alpha:1.0], NSFontAttributeName: [UIFont fontWithName:@"HelveticaNeue" size:14.0]};
     
     self.validProtocols = @[@"http", @"https"];
+
+    self.textView.textContainer.lineFragmentPadding = 0;
+    self.textView.textContainerInset = UIEdgeInsetsZero;
 }
 
 #pragma mark - Printing and calculating text
 
 - (void)determineHotWords {
+
     // Need a text
-    if (_cleanText == nil)
-        return;
+    if (_cleanText == nil) return;
     
-    _textStorage = [[STTweetTextStorage alloc] init];
-    _layoutManager = [[NSLayoutManager alloc] init];
+    _textStorage   = [STTweetTextStorage new];
+    _layoutManager = [NSLayoutManager new];
     
     NSMutableString *tmpText = [[NSMutableString alloc] initWithString:_cleanText];
     
     // Support RTL
     if (!_leftToRight) {
-        tmpText = [[NSMutableString alloc] init];
+        tmpText = [NSMutableString new];
         [tmpText appendString:@"\u200F"];
         [tmpText appendString:_cleanText];
     }
@@ -172,6 +174,7 @@
 }
 
 - (void)determineLinks {
+
     NSMutableString *tmpText = [[NSMutableString alloc] initWithString:_cleanText];
 
     NSError *regexError = nil;
@@ -191,8 +194,8 @@
     }];
 }
 
-- (void)updateText
-{
+- (void)updateText {
+
     NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] initWithString:_cleanText];
     [attributedString setAttributes:_attributesText range:NSMakeRange(0, _cleanText.length)];
     
@@ -208,112 +211,95 @@
     [_layoutManager addTextContainer:_textContainer];
     [_textStorage addLayoutManager:_layoutManager];
 
-    if (_textView != nil)
-        [_textView removeFromSuperview];
-    
-    _textView = [[UITextView alloc] initWithFrame:self.bounds textContainer:_textContainer];
-    _textView.delegate = self;
-    _textView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
-    _textView.backgroundColor = [UIColor clearColor];
-    _textView.textContainer.lineFragmentPadding = 0;
-    _textView.textContainerInset = UIEdgeInsetsZero;
-    _textView.userInteractionEnabled = NO;
-    [self addSubview:_textView];
-}
-
-#pragma mark - Public methods
-
-- (CGSize)suggestedFrameSizeToFitEntireStringConstraintedToWidth:(CGFloat)width {
-    if (_cleanText == nil)
-        return CGSizeZero;
-
-    return [_textView sizeThatFits:CGSizeMake(width, CGFLOAT_MAX)];
-}
-
-- (CGSize) intrinsicContentSize {
-    CGSize size = [self suggestedFrameSizeToFitEntireStringConstraintedToWidth:CGRectGetWidth(self.frame)];
-    return CGSizeMake(size.width, size.height + 1);
+    CGSize size = [self.textView sizeThatFits:self.textView.bounds.size];
+    self.heightConstraint.constant = size.height;
 }
 
 #pragma mark - Private methods
 
 - (NSArray *)hotWordsList {
+
     return _rangesOfHotWords;
 }
 
 #pragma mark - Setters
 
 - (void)setText:(NSString *)text {
-    [super setText:@""];
+
     _cleanText = text;
     [self determineHotWords];
 }
 
 - (void)setValidProtocols:(NSArray *)validProtocols {
+
     _validProtocols = validProtocols;
     [self determineHotWords];
 }
-
-- (void)setAttributes:(NSDictionary *)attributes {
-    if (!attributes[NSFontAttributeName]) {
-        NSMutableDictionary *copy = [attributes mutableCopy];
-        copy[NSFontAttributeName] = self.font;
-        attributes = [NSDictionary dictionaryWithDictionary:copy];
-    }
-    
-    if (!attributes[NSForegroundColorAttributeName]) {
-        NSMutableDictionary *copy = [attributes mutableCopy];
-        copy[NSForegroundColorAttributeName] = self.textColor;
-        attributes = [NSDictionary dictionaryWithDictionary:copy];
-    }
-
-    _attributesText = attributes;
-    
-    [self determineHotWords];
-}
-
-- (void)setAttributes:(NSDictionary *)attributes hotWord:(STTweetHotWord)hotWord {
-    if (!attributes[NSFontAttributeName]) {
-        NSMutableDictionary *copy = [attributes mutableCopy];
-        copy[NSFontAttributeName] = self.font;
-        attributes = [NSDictionary dictionaryWithDictionary:copy];
-    }
-    
-    if (!attributes[NSForegroundColorAttributeName]) {
-        NSMutableDictionary *copy = [attributes mutableCopy];
-        copy[NSForegroundColorAttributeName] = self.textColor;
-        attributes = [NSDictionary dictionaryWithDictionary:copy];
-    }
-    
-    switch (hotWord)  {
-        case STTweetHandle:
-            _attributesHandle = attributes;
-            break;
-        case STTweetHashtag:
-            _attributesHashtag = attributes;
-            break;
-        case STTweetLink:
-            _attributesLink = attributes;
-            break;
-        default:
-            break;
-    }
-    
-    [self determineHotWords];
-}
+//
+//- (void)setAttributes:(NSDictionary *)attributes {
+//
+//    if (!attributes[NSFontAttributeName]) {
+//        NSMutableDictionary *copy = [attributes mutableCopy];
+//        copy[NSFontAttributeName] = self.font;
+//        attributes = [NSDictionary dictionaryWithDictionary:copy];
+//    }
+//    
+//    if (!attributes[NSForegroundColorAttributeName]) {
+//        NSMutableDictionary *copy = [attributes mutableCopy];
+//        copy[NSForegroundColorAttributeName] = self.textColor;
+//        attributes = [NSDictionary dictionaryWithDictionary:copy];
+//    }
+//
+//    _attributesText = attributes;
+//    
+//    [self determineHotWords];
+//}
+//
+//- (void)setAttributes:(NSDictionary *)attributes hotWord:(STTweetHotWord)hotWord {
+//
+//    if (!attributes[NSFontAttributeName]) {
+//        NSMutableDictionary *copy = [attributes mutableCopy];
+//        copy[NSFontAttributeName] = self.font;
+//        attributes = [NSDictionary dictionaryWithDictionary:copy];
+//    }
+//    
+//    if (!attributes[NSForegroundColorAttributeName]) {
+//        NSMutableDictionary *copy = [attributes mutableCopy];
+//        copy[NSForegroundColorAttributeName] = self.textColor;
+//        attributes = [NSDictionary dictionaryWithDictionary:copy];
+//    }
+//    
+//    switch (hotWord)  {
+//        case STTweetHandle:
+//            _attributesHandle = attributes;
+//            break;
+//        case STTweetHashtag:
+//            _attributesHashtag = attributes;
+//            break;
+//        case STTweetLink:
+//            _attributesLink = attributes;
+//            break;
+//        default:
+//            break;
+//    }
+//    
+//    [self determineHotWords];
+//}
 
 - (void)setLeftToRight:(BOOL)leftToRight {
+
     _leftToRight = leftToRight;
 
     [self determineHotWords];
 }
 
 - (void)setTextAlignment:(NSTextAlignment)textAlignment {
-    [super setTextAlignment:textAlignment];
+
     _textView.textAlignment = textAlignment;
 }
 
 - (void)setDetectionBlock:(void (^)(STTweetHotWord, NSString *, NSString *, NSRange))detectionBlock {
+
     if (detectionBlock) {
         _detectionBlock = [detectionBlock copy];
         self.userInteractionEnabled = YES;
@@ -324,6 +310,7 @@
 }
 
 - (void)setAttributedText:(NSAttributedString *)attributedText {
+
     self.text = attributedText.string;
     if (self.text.length > 0) {
         [self setAttributes:[attributedText attributesAtIndex:0 effectiveRange:NULL]];
@@ -333,14 +320,17 @@
 #pragma mark - Getters
 
 - (NSString *)text {
+
     return _cleanText;
 }
 
 - (NSDictionary *)attributes {
+
     return _attributesText;
 }
 
 - (NSDictionary *)attributesForHotWord:(STTweetHotWord)hotWord {
+
     switch (hotWord) {
         case STTweetHandle:
             return _attributesHandle;
@@ -357,6 +347,7 @@
 }
 
 - (BOOL)isLeftToRight {
+
     return _leftToRight;
 }
 
